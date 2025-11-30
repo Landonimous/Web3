@@ -31,8 +31,8 @@ body {
     margin-top: 20px;
 }
 
-#controls button {
-    width: 60px;
-    height: 60px;
-    font-size: 22px;
-}
+    #controls button {
+        width: 60px;
+        height: 60px;
+        font-size: 22px;
+    }

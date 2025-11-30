@@ -1,25 +1,33 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2048</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>2048. Landonimous. Забродский Александр Владимирович</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <h1>2048. Landonimous. Забродский Александр Владимирович</h1>
 
-<h1>2048</h1>
-<div id="score">0</div>
+  <div class="topbar">
+    <div>Счёт: <span id="score">0</span></div>
+    <div class="controls-row">
+      <button id="undo">Отмена</button>
+      <button id="restart">Заново</button>
+    </div>
+  </div>
 
-<div id="game"></div>
+  <div id="game" aria-label="Поле 2048" role="application"></div>
 
-<div id="controls">
-    <button id="up">▲</button>
-    <button id="left">◀</button>
-    <button id="right">▶</button>
-    <button id="down">▼</button>
-</div>
+  <div id="virt-controls" class="virt">
+    <button data-dir="up" class="dir up">▲</button>
+    <div class="row">
+      <button data-dir="left" class="dir">◀</button>
+      <button data-dir="right" class="dir">▶</button>
+    </div>
+    <button data-dir="down" class="dir down">▼</button>
+  </div>
 
-<script src="game.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>

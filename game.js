@@ -1,98 +1,213 @@
-const size = 4;
-let board = [];
-let score = 0;
+// game.js — классическая версия: одно нажатие = один ход.
+// Все DOM-операции через createElement/appendChild/removeChild
 
-const game = document.getElementById("game");
+const SIZE = 4;
+const gameEl = document.getElementById("game");
 const scoreEl = document.getElementById("score");
 
-function init() {
-    board = Array(size).fill(null).map(() => Array(size).fill(0));
-    score = 0;
+let board = [];
+let score = 0;
+let undoStack = [];
+
+// -------------------------- утилиты ----------------------------
+function cloneBoard(b) {
+    return b.map(row => row.slice());
+}
+function clearEl(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+}
+
+// -------------------------- рендер ----------------------------
+function render() {
+    clearEl(gameEl);
+    for (let r = 0; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+            const tile = document.createElement("div");
+            const v = board[r][c];
+            tile.className = "tile v" + (v === 0 ? "0" : v);
+            tile.textContent = v === 0 ? "" : String(v);
+            gameEl.appendChild(tile);
+        }
+    }
     scoreEl.textContent = score;
-
-    addTile();
-    addTile();
-    draw();
 }
 
-function addTile() {
-    let empty = [];
-    for (let r = 0; r < size; r++) {
-        for (let c = 0; c < size; c++) {
-            if (board[r][c] === 0) empty.push([r, c]);
+// -------------------------- логика поля ----------------------------
+function freshBoard() {
+    board = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+}
+
+function emptyCells() {
+    const list = [];
+    for (let r = 0; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+            if (board[r][c] === 0) list.push([r, c]);
         }
     }
-    if (empty.length === 0) return;
+    return list;
+}
 
-    const [r, c] = empty[Math.floor(Math.random() * empty.length)];
+function spawn() {
+    const empty = emptyCells();
+    if (!empty.length) return false;
+    const [r, c] = empty[(Math.random() * empty.length) | 0];
     board[r][c] = Math.random() < 0.9 ? 2 : 4;
+    return true;
 }
 
-function draw() {
-    game.innerHTML = "";
-    for (let r = 0; r < size; r++) {
-        for (let c = 0; c < size; c++) {
-            const div = document.createElement("div");
-            div.className = "tile";
-            if (board[r][c] !== 0) div.textContent = board[r][c];
-            game.appendChild(div);
+function compressLine(arr) {
+    const seq = arr.filter(v => v !== 0);
+    const res = [];
+    let gain = 0;
+    for (let i = 0; i < seq.length; i++) {
+        if (seq[i] === seq[i + 1]) {
+            const m = seq[i] * 2;
+            res.push(m);
+            gain += m;
+            i++;
+        } else {
+            res.push(seq[i]);
         }
     }
+    while (res.length < SIZE) res.push(0);
+    return { line: res, gain };
 }
 
-function moveLeft() {
+function rotateCW(b) {
+    const n = SIZE;
+    const nb = Array.from({ length: n }, () => Array(n).fill(0));
+    for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+            nb[c][n - 1 - r] = b[r][c];
+        }
+    }
+    return nb;
+}
+
+function moveLeftOnce() {
+    let changed = false;
+    for (let r = 0; r < SIZE; r++) {
+        const old = board[r];
+        const { line, gain } = compressLine(old);
+        if (String(line) !== String(old)) changed = true;
+        board[r] = line;
+        score += gain;
+    }
+    return changed;
+}
+
+// -------------------------- движение (с undo) ----------------------------
+function saveUndo() {
+    undoStack.push({ board: cloneBoard(board), score });
+    if (undoStack.length > 20) undoStack.shift();
+}
+
+function move(dir) {
+    // сохраняем в историю перед попыткой хода
+    saveUndo();
+
     let moved = false;
-    for (let r = 0; r < size; r++) {
-        let row = board[r].filter(v => v !== 0);
-
-        for (let i = 0; i < row.length - 1; i++) {
-            if (row[i] === row[i + 1]) {
-                row[i] *= 2;
-                score += row[i];
-                row.splice(i + 1, 1);
-            }
-        }
-        while (row.length < 4) row.push(0);
-
-        if (board[r].toString() !== row.toString()) moved = true;
-
-        board[r] = row;
+    if (dir === "left") {
+        moved = moveLeftOnce();
+    } else if (dir === "right") {
+        board = rotateCW(rotateCW(board));
+        moved = moveLeftOnce();
+        board = rotateCW(rotateCW(board));
+    } else if (dir === "up") {
+        board = rotateCW(rotateCW(rotateCW(board))); // rotate CCW
+        moved = moveLeftOnce();
+        board = rotateCW(board);
+    } else if (dir === "down") {
+        board = rotateCW(board);
+        moved = moveLeftOnce();
+        board = rotateCW(rotateCW(rotateCW(board)));
     }
-    if (moved) {
-        addTile();
-        draw();
-        scoreEl.textContent = score;
+
+    if (!moved) {
+        // откат истории, если реально ничего не изменилось
+        undoStack.pop();
+        return;
+    }
+
+    // успешный ход — спавним плитку, отрисовываем и проверяем конец игры
+    spawn();
+    render();
+
+    if (!canMove()) {
+        setTimeout(() => {
+            alert("Игра окончена — нет возможных ходов.");
+        }, 20);
     }
 }
 
-function rotate() {
-    const newBoard = Array(size)
-        .fill(null)
-        .map(() => Array(size).fill(0));
+// -------------------------- проверка доступности хода ----------------------------
+function canMove() {
+    // есть пустые клетки?
+    for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if (board[r][c] === 0) return true;
 
-    for (let r = 0; r < size; r++) {
-        for (let c = 0; c < size; c++) {
-            newBoard[c][size - r - 1] = board[r][c];
-        }
-    }
+    // проверка слияний по горизонтали
+    for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE - 1; c++) if (board[r][c] === board[r][c + 1]) return true;
 
-    board = newBoard;
+    // проверка слияний по вертикали
+    for (let c = 0; c < SIZE; c++) for (let r = 0; r < SIZE - 1; r++) if (board[r][c] === board[r + 1][c]) return true;
+
+    return false;
 }
 
-function moveUp() { rotate(); moveLeft(); rotate(); rotate(); rotate(); }
-function moveRight() { rotate(); rotate(); moveLeft(); rotate(); rotate(); }
-function moveDown() { rotate(); rotate(); rotate(); moveLeft(); rotate(); }
+// -------------------------- кнопки и клавиши ----------------------------
+document.getElementById("restart").addEventListener("click", startNewGame);
 
-document.addEventListener("keydown", e => {
-    if (e.key === "ArrowLeft") moveLeft();
-    if (e.key === "ArrowUp") moveUp();
-    if (e.key === "ArrowRight") moveRight();
-    if (e.key === "ArrowDown") moveDown();
+document.getElementById("undo").addEventListener("click", () => {
+    if (!undoStack.length) return;
+    const prev = undoStack.pop();
+    board = cloneBoard(prev.board);
+    score = prev.score;
+    render();
 });
 
-document.getElementById("left").onclick = moveLeft;
-document.getElementById("up").onclick = moveUp;
-document.getElementById("right").onclick = moveRight;
-document.getElementById("down").onclick = moveDown;
+document.querySelectorAll("[data-dir]").forEach(btn => {
+    btn.addEventListener("click", () => move(btn.dataset.dir));
+});
 
-init();
+window.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft") move("left");
+    if (e.key === "ArrowRight") move("right");
+    if (e.key === "ArrowUp") move("up");
+    if (e.key === "ArrowDown") move("down");
+});
+
+// -------------------------- старт/сохранение ----------------------------
+function startNewGame() {
+    undoStack = [];
+    score = 0;
+    freshBoard();
+    spawn();
+    spawn();
+    render();
+}
+
+// Попытка загрузить состояние из localStorage (если нужно)
+function loadState() {
+    try {
+        const raw = localStorage.getItem('2048_state');
+        if (!raw) return false;
+        const obj = JSON.parse(raw);
+        if (obj && obj.board) { board = obj.board; score = obj.score || 0; undoStack = obj.undo || []; return true; }
+    } catch (e) { }
+    return false;
+}
+
+function saveState() {
+    try {
+        localStorage.setItem('2048_state', JSON.stringify({ board, score, undo: undoStack }));
+    } catch (e) { }
+}
+
+window.addEventListener('beforeunload', saveState);
+
+// Инициализация при загрузке
+if (!loadState()) {
+    startNewGame();
+} else {
+    render();
+}
