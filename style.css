@@ -1,0 +1,38 @@
+body {
+    background: #faf8ef;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding-top: 20px;
+}
+
+#game {
+    width: 320px;
+    height: 320px;
+    background: #bbada0;
+    margin: 20px auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-gap: 10px;
+    padding: 10px;
+}
+
+.tile {
+    width: 70px;
+    height: 70px;
+    background: #cdc1b4;
+    font-size: 30px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#controls {
+    margin-top: 20px;
+}
+
+#controls button {
+    width: 60px;
+    height: 60px;
+    font-size: 22px;
+}
