@@ -36,3 +36,66 @@ body {
         height: 60px;
         font-size: 22px;
     }
+
+/* Цвета для разных значений */
+.v0 {
+    background: #cdc1b4;
+}
+
+.v2 {
+    background: #eee4da;
+}
+
+.v4 {
+    background: #ede0c8;
+}
+
+.v8 {
+    background: #f2b179;
+    color: #f9f6f2;
+}
+
+.v16 {
+    background: #f59563;
+    color: #f9f6f2;
+}
+
+.v32 {
+    background: #f67c5f;
+    color: #f9f6f2;
+}
+
+.v64 {
+    background: #f65e3b;
+    color: #f9f6f2;
+}
+
+.v128 {
+    background: #edcf72;
+    color: #f9f6f2;
+    font-size: 26px;
+}
+
+.v256 {
+    background: #edcc61;
+    color: #f9f6f2;
+    font-size: 26px;
+}
+
+.v512 {
+    background: #edc850;
+    color: #f9f6f2;
+    font-size: 26px;
+}
+
+.v1024 {
+    background: #edc53f;
+    color: #f9f6f2;
+    font-size: 22px;
+}
+
+.v2048 {
+    background: #edc22e;
+    color: #f9f6f2;
+    font-size: 22px;
+}
